@@ -1,8 +1,8 @@
 ```mermaid
 erDiagram
     USUARIO ||--o{ LOTE : "registra"
-    LOTE ||--o{ TELEMETRIA : "genera"
-    LOTE ||--o{ REGISTRO_CALIDAD : "tiene"
+    PIEZA ||--o{ TELEMETRIA : "genera"
+    PIEZA ||--o{ REGISTRO_CALIDAD : "tiene"
     DEFECTO ||--o{ REGISTRO_CALIDAD : "aparece en"
 
     USUARIO {
