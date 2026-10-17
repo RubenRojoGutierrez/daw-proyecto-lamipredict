@@ -48,4 +48,4 @@ erDiagram
         int id_defecto FK
         string gravedad
         string observaciones
-    }```
+    }
