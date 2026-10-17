@@ -1,3 +1,4 @@
+```mermaid
 erDiagram
     USUARIO ||--o{ LOTE : "registra"
     LOTE ||--o{ TELEMETRIA : "genera"
@@ -37,7 +38,7 @@ erDiagram
         decimal presion_calandra_1
         decimal presion_calandra_2
         decimal temp_horno
-        int resistencias_encendidas
+        int resistances_encendidas
         decimal temp_vidrio_salida_horno
         decimal cantidad_intercalario
     }
@@ -47,4 +48,4 @@ erDiagram
         int id_defecto FK
         string gravedad
         string observaciones
-    }
+    }```
