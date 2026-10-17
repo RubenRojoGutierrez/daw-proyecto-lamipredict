@@ -1,6 +1,6 @@
 ```mermaid
 erDiagram
-    USUARIO ||--o{ LOTE : "registra"
+    USUARIO ||--o{ PIEZA : "supervisa"
     PIEZA ||--o{ TELEMETRIA : "genera"
     PIEZA ||--o{ REGISTRO_CALIDAD : "tiene"
     DEFECTO ||--o{ REGISTRO_CALIDAD : "aparece en"
@@ -26,7 +26,7 @@ erDiagram
     }
     TELEMETRIA {
         int id_telemetria PK
-        int id_lote FK
+        string id_pieza FK
         datetime timestamp
         string receta_fabricacion
         decimal temp_vidrio
@@ -39,13 +39,13 @@ erDiagram
         decimal presion_calandra_1
         decimal presion_calandra_2
         decimal temp_horno
-        int resistances_encendidas
+        int resistencias_encendidas
         decimal temp_vidrio_salida_horno
         decimal cantidad_intercalario
     }
     REGISTRO_CALIDAD {
         int id_registro PK
-        int id_lote FK
+        string id_pieza FK
         int id_defecto FK
         string gravedad
         string observaciones
