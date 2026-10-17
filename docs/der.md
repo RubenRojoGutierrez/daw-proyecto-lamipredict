@@ -12,11 +12,14 @@ erDiagram
         string password_hash
         string rol
     }
-    LOTE {
-        int id_lote PK
+    PIEZA {
+
+        string id_pieza PK
         int id_usuario FK
-        string codigo_trazabilidad
-        datetime fecha_produccion
+        int programa_fabricacion
+        int numero_carro
+        datetime timestamp
+
     }
     DEFECTO {
         int id_defecto PK
