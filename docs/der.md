@@ -13,13 +13,11 @@ erDiagram
         string rol
     }
     PIEZA {
-
         string id_pieza PK
         int id_usuario FK
         int programa_fabricacion
         int numero_carro
         datetime timestamp
-
     }
     DEFECTO {
         int id_defecto PK
