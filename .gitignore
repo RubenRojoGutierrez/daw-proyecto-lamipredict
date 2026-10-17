@@ -1,0 +1,14 @@
+# Secretos y variables de entorno
+.env
+
+# Dependencias (Node y PHP/Laravel)
+node_modules/
+vendor/
+
+# Artefactos de compilación
+dist/
+build/
+
+# Carpetas de editores de código (IDE)
+.vscode/
+.idea/
