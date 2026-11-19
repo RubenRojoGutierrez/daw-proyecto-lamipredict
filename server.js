@@ -23,6 +23,8 @@ const piezaRoutes = require('./routes/pieza.routes');
 const defectoRoutes = require('./routes/defecto.routes');
 const registroCalidadRoutes = require('./routes/registroCalidad.routes');
 const maquinaRoutes = require('./routes/maquina.routes');
+const authRoutes = require('./routes/auth.routes');
+const { AppError, errorHandler } = require('./middlewares/errorHandler');
 
 // --- CONEXIÓN DE ENDPOINTS (URLs) ---
 app.use('/api/telemetria', telemetriaRoutes);
@@ -31,6 +33,7 @@ app.use('/api/piezas', piezaRoutes);
 app.use('/api/defectos', defectoRoutes);
 app.use('/api/calidad', registroCalidadRoutes);
 app.use('/api/maquinas', maquinaRoutes);
+app.use('/api/auth', authRoutes);
 
 // ---> RUTA BASE: Comprobación del motor <---
 app.get('/', (req, res) => {
@@ -44,6 +47,13 @@ app.get('/', (req, res) => {
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
+// Captura de rutas no existentes (404 Not Found en RFC 9457)
+app.use((req, res, next) => {
+    next(new AppError(404, 'Ruta No Encontrada', `No existe el endpoint ${req.originalUrl}`, 'https://api.lamipredict.es/errors/not-found'));
+});
+
+// Middleware global de errores (SIEMPRE el último)
+app.use(errorHandler);
 
 // 5. ENCENDIDO DEL MOTOR
 app.listen(PORT, () => {
