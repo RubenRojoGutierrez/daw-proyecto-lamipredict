@@ -12,23 +12,21 @@ model Usuario {
   nombre        String
   email         String   @unique
   password_hash String
-  rol           String
+  rol           String   @default("user") // "admin" | "user"
 
-  // Relación 1:N -> Un usuario supervisa muchas piezas
   piezas        Pieza[]
 }
 
 model Maquina {
   id_maquina  Int          @id @default(autoincrement())
-  nombre      String
+  nombre      String       @unique
   seccion     String
 
-  // Relación 1:N -> Una máquina genera mucha telemetría
   telemetrias Telemetria[]
 }
 
 model Pieza {
-  id_pieza             String   @id // PK como String (para códigos alfanuméricos/QR)
+  id_pieza             String   @id
   id_usuario           Int
   programa_fabricacion Int
   numero_carro         Int
@@ -36,18 +34,15 @@ model Pieza {
   lote_pvb             String
   timestamp            DateTime @default(now())
 
-  // Clave foránea
-  usuario              Usuario  @relation(fields: [id_usuario], references: [id_usuario])
-  
-  // Relaciones inversas
+  usuario              Usuario           @relation(fields: [id_usuario], references: [id_usuario], onDelete: Restrict)
   telemetrias          Telemetria[]
   registros_calidad    RegistroCalidad[]
 }
 
 model Defecto {
-  id_defecto  Int    @id @default(autoincrement())
-  nombre      String
-  descripcion String
+  id_defecto        Int               @id @default(autoincrement())
+  nombre            String            @unique
+  descripcion       String
 
   registros_calidad RegistroCalidad[]
 }
@@ -58,7 +53,6 @@ model Telemetria {
   id_maquina                  Int
   timestamp                   DateTime @default(now())
   receta_fabricacion          String
-  // Usamos Float para los Decimal del DER (ideal para sensores PLC en Node)
   temp_vidrio_base            Float
   velocidad_lavadora          Float
   temp_agua_lavadora          Float
@@ -72,19 +66,17 @@ model Telemetria {
   temp_salida_horno           Float
   cantidad_polvo_intercalario Float
 
-  // Claves foráneas
-  pieza                       Pieza?    @relation(fields: [id_pieza], references: [id_pieza])
-  maquina                     Maquina  @relation(fields: [id_maquina], references: [id_maquina])
+  pieza                       Pieza?   @relation(fields: [id_pieza], references: [id_pieza], onDelete: SetNull)
+  maquina                     Maquina  @relation(fields: [id_maquina], references: [id_maquina], onDelete: Restrict)
 }
 
-// TABLA INTERMEDIA M:N (Pieza <-> Defecto) con campos propios
 model RegistroCalidad {
   id_registro   Int      @id @default(autoincrement())
   id_pieza      String
   id_defecto    Int
-  gravedad      String
-  observaciones String?  // El interrogante lo hace opcional por si no hay notas
+  gravedad      String   // "BAJA" | "MEDIA" | "CRITICA"
+  observaciones String?
 
-  pieza         Pieza    @relation(fields: [id_pieza], references: [id_pieza])
-  defecto       Defecto  @relation(fields: [id_defecto], references: [id_defecto])
+  pieza         Pieza    @relation(fields: [id_pieza], references: [id_pieza], onDelete: Cascade)
+  defecto       Defecto  @relation(fields: [id_defecto], references: [id_defecto], onDelete: Restrict)
 }

@@ -10,7 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "prisma skills sync || exit 0",
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "db:reset": "prisma migrate reset --force"
   },
   "repository": {
     "type": "git",
@@ -29,9 +30,13 @@
     "prisma": "^5.22.0"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.10",
     "express": "^5.3.0",
     "nodemon": "^3.1.14"
+  },
+  "prisma": {
+  "seed": "node prisma/seed.js"
   }
 }
