@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LamiPredict - SCADA Dashboard</title>
+    <style>
+        /* Diseño SCADA Industrial Oscuro */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #ffffff;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .zona-card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .zona-titulo {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #88ccff;
+            margin-top: 0;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+        .parametro {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0;
+            font-size: 1.1rem;
+        }
+        .valor {
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.3rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background-color: #000;
+        }
+        
+        /* Colores Semánticos */
+        .ok { color: #00ff00; text-shadow: 0 0 5px rgba(0,255,0,0.3); }
+        .warning { color: #ffaa00; }
+        .alarm { color: #ff3333; text-shadow: 0 0 5px rgba(255,51,51,0.3); }
+        
+        #ultima-actualizacion {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏭 LamiPredict - Monitor de Línea HMI</h1>
+
+    <div class="dashboard-grid">
+        <!-- ZONA 1: LAVADO -->
+        <div class="zona-card">
+            <h2 class="zona-titulo">💧 ZONA 1: LAVADO</h2>
+            <div class="parametro">Temp. Vidrio Base: <span id="val_temp_vidrio" class="valor">--</span></div>
+            <div class="parametro">Velocidad Lavadora: <span id="val_vel_lavadora" class="valor">--</span></div>
+            <div class="parametro">Temp. Agua: <span id="val_temp_agua" class="valor">--</span></div>
+        </div>
+
+        <!-- ZONA 2: ENSAMBLADO (SALA BLANCA) -->
+        <div class="zona-card">
+            <h2 class="zona-titulo">🥼 ZONA 2: SALA BLANCA</h2>
+            <div class="parametro">Temp. Sala: <span id="val_temp_sala" class="valor">--</span></div>
+            <div class="parametro">Humedad: <span id="val_humedad" class="valor">--</span></div>
+            <div class="parametro">Polvo Intercalario: <span id="val_polvo" class="valor">--</span></div>
+        </div>
+
+        <!-- ZONA 3: CALANDRAS -->
+        <div class="zona-card">
+            <h2 class="zona-titulo">⚙️ ZONA 3: CALANDRAS</h2>
+            <div class="parametro">Presión Calandra 1: <span id="val_presion_1" class="valor">--</span></div>
+            <div class="parametro">Presión Calandra 2: <span id="val_presion_2" class="valor">--</span></div>
+        </div>
+
+        <!-- ZONA 4: HORNO -->
+        <div class="zona-card">
+            <h2 class="zona-titulo">🔥 ZONA 4: HORNO</h2>
+            <div class="parametro">Temp. Horno: <span id="val_temp_horno" class="valor">--</span></div>
+            <div class="parametro">Temp. Salida: <span id="val_temp_salida" class="valor">--</span></div>
+            <div class="parametro">Resistencias Activas: <span id="val_resistencias" class="valor">--</span></div>
+        </div>
+    </div>
+
+    <div id="ultima-actualizacion">Esperando datos del PLC...</div>
+
+    <script>
+        // Función para evaluar si un valor está en rango y devolver la clase CSS
+        function evaluarRango(valor, min, max) {
+            if (valor >= min && valor <= max) return 'ok';
+            return 'alarm';
+        }
+
+        // Función para evaluar calandras (solo buscamos que haya presión > 0)
+        function evaluarPresion(valor) {
+            if (valor > 0) return 'ok';
+            return 'alarm'; // Vacío / Sin presión
+        }
+
+        async function actualizarDashboard() {
+            try {
+                // Hacemos la petición a nuestra API
+                const respuesta = await fetch('/api/telemetria/ultimas');
+                const datos = await respuesta.json();
+
+                if (datos && datos.length > 0) {
+                    const telemetria = datos[0]; // Cogemos el registro más reciente
+
+                    // --- ZONA LAVADO ---
+                    const velLav = telemetria.velocidad_lavadora;
+                    const tempAgua = telemetria.temp_agua_lavadora;
+                    document.getElementById('val_temp_vidrio').textContent = telemetria.temp_vidrio_base.toFixed(1) + ' ºC';
+                    
+                    const elVel = document.getElementById('val_vel_lavadora');
+                    elVel.textContent = velLav.toFixed(1) + ' m/min';
+                    elVel.className = 'valor ' + evaluarRango(velLav, 20, 25);
+
+                    const elAgua = document.getElementById('val_temp_agua');
+                    elAgua.textContent = tempAgua.toFixed(1) + ' ºC';
+                    elAgua.className = 'valor ' + evaluarRango(tempAgua, 28, 32);
+
+                    // --- ZONA SALA BLANCA ---
+                    const tempSala = telemetria.temp_entrada_sala_blanca;
+                    const humedad = telemetria.humedad_ensamblado;
+                    
+                    const elSala = document.getElementById('val_temp_sala');
+                    elSala.textContent = tempSala.toFixed(1) + ' ºC';
+                    elSala.className = 'valor ' + evaluarRango(tempSala, 23, 25);
+
+                    const elHumedad = document.getElementById('val_humedad');
+                    elHumedad.textContent = humedad.toFixed(1) + ' %';
+                    elHumedad.className = 'valor ' + evaluarRango(humedad, 20, 30);
+                    
+                    document.getElementById('val_polvo').textContent = telemetria.cantidad_polvo_intercalario + ' g/m2';
+
+                    // --- ZONA CALANDRAS ---
+                    const p1 = telemetria.presion_calandra_1;
+                    const p2 = telemetria.presion_calandra_2;
+                    
+                    const elP1 = document.getElementById('val_presion_1');
+                    elP1.textContent = p1.toFixed(2) + ' bar';
+                    elP1.className = 'valor ' + evaluarPresion(p1);
+
+                    const elP2 = document.getElementById('val_presion_2');
+                    elP2.textContent = p2.toFixed(2) + ' bar';
+                    elP2.className = 'valor ' + evaluarPresion(p2);
+
+                    // --- ZONA HORNO ---
+                    const tempHorno = telemetria.temp_horno;
+                    const tempSalida = telemetria.temp_salida_horno;
+                    
+                    const elHorno = document.getElementById('val_temp_horno');
+                    elHorno.textContent = tempHorno.toFixed(1) + ' ºC';
+                    elHorno.className = 'valor ' + evaluarRango(tempHorno, 215, 225);
+
+                    const elSalida = document.getElementById('val_temp_salida');
+                    elSalida.textContent = tempSalida.toFixed(1) + ' ºC';
+                    elSalida.className = 'valor ' + evaluarRango(tempSalida, 50, 60);
+
+                    document.getElementById('val_resistencias').textContent = telemetria.resistencias_encendidas;
+
+                    // Actualizar hora de lectura
+                    const fecha = new Date(telemetria.timestamp);
+                    document.getElementById('ultima-actualizacion').textContent = 'Última lectura: ' + fecha.toLocaleTimeString();
+                }
+            } catch (error) {
+                console.error("Error leyendo telemetría:", error);
+                document.getElementById('ultima-actualizacion').textContent = "Error de conexión con el PLC";
+            }
+        }
+
+        // Actualizamos cada 1 segundo (1000 ms)
+        setInterval(actualizarDashboard, 1000);
+        // Llamada inicial para no esperar el primer segundo
+        actualizarDashboard();
+    </script>
+</body>
+</html>
