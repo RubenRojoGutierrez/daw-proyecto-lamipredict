@@ -7,6 +7,8 @@
 // ==========================================
 const API_TELEMETRIA = 'http://localhost:3000/api/telemetria';
 const API_PIEZAS = 'http://localhost:3000/api/piezas';
+const API_LOGIN = 'http://localhost:3000/api/auth/login';
+let tokenJWT = null;
 const INTERVALO_PLC = 1000; // Bajamos a 1 segundo para capturar bien el paso rápido
 
 // Estado dinámico
@@ -171,13 +173,34 @@ async function enviarDatosPLC() {
 }
 
 // ==========================================
-// 5. GENERADOR DE PRODUCCIÓN (EL ERP)
+// 5. AUTENTICACIÓN Y GENERADOR DE PRODUCCIÓN (EL ERP)
 // ==========================================
+async function iniciarSesionPLC() {
+    try {
+        const res = await fetch(API_LOGIN, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: 'admin@cifpaviles.es',
+                password: 'Admin1234!'
+            })
+        });
+
+        if (!res.ok) {
+            throw new Error(`Login fallido con código ${res.status}`);
+        }
+
+        const data = await res.json();
+        tokenJWT = data.token;
+        console.log('[PLC] 🔐 Sesión JWT iniciada correctamente.\n');
+    } catch (error) {
+        console.error('[PLC] ❌ No se pudo autenticar el simulador:', error.message);
+        process.exit(1); // Si no hay token, paramos el simulador
+    }
+}
+
 async function generarNuevaPieza() {
-    // Generamos un código corto aleatorio o basado en la hora para esta sesión (ej: 4892)
     const loteSesion = Math.floor(Date.now() / 1000).toString().slice(-4);
-    
-    // Ahora las piezas se llamarán algo como: PROD-4892-001, PROD-4892-002...
     const nuevoId = `PROD-${loteSesion}-${contador_piezas.toString().padStart(3, '0')}`;
     
     console.log(`\n=========================================`);
@@ -186,13 +209,14 @@ async function generarNuevaPieza() {
     try {
         const respuestaPieza = await fetch(API_PIEZAS, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${tokenJWT}` // <-- Aquí enseñamos el carnet JWT
+            },
             body: JSON.stringify({
                 id_pieza: nuevoId,
-                // AÑADIMOS LOS CAMPOS OBLIGATORIOS DE TU SCHEMA:
-                id_usuario: 1, // ⚠️ IMPORTANTE: Asegúrate de que el usuario con ID 1 existe en tu tabla Usuario
-                programa_fabricacion: 1045, // Un número de programa ficticio
-                numero_carro: 12, // El carro donde va apoyado el vidrio
+                programa_fabricacion: 1045,
+                numero_carro: 12,
                 lote_vidrio_base: "LOTE-V-8890", 
                 lote_pvb: "PVB-EASTMAN-004"
             })
@@ -202,8 +226,12 @@ async function generarNuevaPieza() {
             console.log(`[ERP] Pieza ${nuevoId} registrada en base de datos.`);
             id_pieza_actual = nuevoId;
             pasandoVidrio = true;
-            tiempo_inicio_pieza = Date.now(); // NUEVO: Disparamos el cronómetro en milisegundos
+            tiempo_inicio_pieza = Date.now();
             contador_piezas++; 
+        } else if (respuestaPieza.status === 401) {
+            // Si el token caducó tras 2 horas, renovamos sesión automáticamente
+            console.warn('[ERP] ⚠️ Token expirado (401). Renovando sesión...');
+            await iniciarSesionPLC();
         } else {
             console.error(`[ERP] ❌ Error al registrar pieza. Código: ${respuestaPieza.status}`);
             pasandoVidrio = false;
@@ -216,14 +244,14 @@ async function generarNuevaPieza() {
 // ==========================================
 // 6. ARRANQUE DEL SISTEMA
 // ==========================================
-console.log("🔌 Iniciando Gemelo Digital PLC - LamiPredict...");
-console.log("Esperando inicio de producción...\n");
+async function arrancarSistema() {
+    console.log("🔌 Iniciando Gemelo Digital PLC - LamiPredict...");
+    await iniciarSesionPLC(); // Esperamos a tener el token JWT
 
-// 1. El PLC lee sensores y envía datos cada 2 segundos
-setInterval(enviarDatosPLC, INTERVALO_PLC);
+    console.log("Esperando inicio de producción...\n");
+    setInterval(enviarDatosPLC, INTERVALO_PLC);
+    setInterval(generarNuevaPieza, 15000);
+    setTimeout(generarNuevaPieza, 2000);
+}
 
-// 2. El ERP mete un cristal nuevo cada 15 segundos (luego súbelo a 60000 para que sea 1 minuto real)
-setInterval(generarNuevaPieza, 15000); 
-
-// 3. Forzamos la entrada de la primera pieza al arrancar
-setTimeout(generarNuevaPieza, 2000);
+arrancarSistema();
