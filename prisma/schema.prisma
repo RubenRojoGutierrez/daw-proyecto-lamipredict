@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id_usuario    Int      @id @default(autoincrement())
+  nombre        String
+  email         String   @unique
+  password_hash String
+  rol           String   @default("user") // "admin" | "user"
+
+  piezas        Pieza[]
+}
+
+model Maquina {
+  id_maquina  Int          @id @default(autoincrement())
+  nombre      String       @unique
+  seccion     String
+
+  telemetrias Telemetria[]
+}
+
+model Pieza {
+  id_pieza             String   @id
+  id_usuario           Int
+  programa_fabricacion Int
+  numero_carro         Int
+  lote_vidrio_base     String
+  lote_pvb             String
+  timestamp            DateTime @default(now())
+
+  usuario              Usuario           @relation(fields: [id_usuario], references: [id_usuario], onDelete: Restrict)
+  telemetrias          Telemetria[]
+  registros_calidad    RegistroCalidad[]
+}
+
+model Defecto {
+  id_defecto        Int               @id @default(autoincrement())
+  nombre            String            @unique
+  descripcion       String
+
+  registros_calidad RegistroCalidad[]
+}
+
+model Telemetria {
+  id_telemetria               Int      @id @default(autoincrement())
+  id_pieza                    String?
+  id_maquina                  Int
+  timestamp                   DateTime @default(now())
+  receta_fabricacion          String
+  temp_vidrio_base            Float
+  velocidad_lavadora          Float
+  temp_agua_lavadora          Float
+  temp_entrada_sala_blanca    Float
+  temp_ensamblado             Float
+  humedad_ensamblado          Float
+  presion_calandra_1          Float
+  presion_calandra_2          Float
+  temp_horno                  Float
+  resistencias_encendidas     Int
+  temp_salida_horno           Float
+  cantidad_polvo_intercalario Float
+
+  pieza                       Pieza?   @relation(fields: [id_pieza], references: [id_pieza], onDelete: SetNull)
+  maquina                     Maquina  @relation(fields: [id_maquina], references: [id_maquina], onDelete: Restrict)
+}
+
+model RegistroCalidad {
+  id_registro   Int      @id @default(autoincrement())
+  id_pieza      String
+  id_defecto    Int
+  gravedad      String   // "BAJA" | "MEDIA" | "CRITICA"
+  observaciones String?
+
+  pieza         Pieza    @relation(fields: [id_pieza], references: [id_pieza], onDelete: Cascade)
+  defecto       Defecto  @relation(fields: [id_defecto], references: [id_defecto], onDelete: Restrict)
+}

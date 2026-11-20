@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LamiPredict · Panel de línea</title>
+    <style>
+        :root {
+            --bg: #0c1016;
+            --panel: #151c26;
+            --panel-edge: #2a3646;
+            --text: #e7eef6;
+            --muted: #8d9aab;
+            --ok: #1f9d55;
+            --ok-glow: rgba(31, 157, 85, 0.35);
+            --alarm: #d64545;
+            --alarm-glow: rgba(214, 69, 69, 0.38);
+            --idle: #5c6b7c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse at top, #182232 0%, var(--bg) 55%);
+            color: var(--text);
+            font-family: "Segoe UI", system-ui, sans-serif;
+        }
+
+        .marco {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 28px 24px 40px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 16px;
+            margin-bottom: 22px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--panel-edge);
+        }
+
+        .marca {
+            letter-spacing: 0.22em;
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin-top: 6px;
+            font-size: 28px;
+            font-weight: 650;
+            letter-spacing: 0.02em;
+        }
+
+        .enlace {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .punto {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--idle);
+            box-shadow: 0 0 0 4px rgba(92, 107, 124, 0.2);
+        }
+
+        .punto.ok {
+            background: var(--ok);
+            box-shadow: 0 0 0 4px var(--ok-glow);
+        }
+
+        .punto.alarma {
+            background: var(--alarm);
+            box-shadow: 0 0 0 4px var(--alarm-glow);
+        }
+
+        .aviso {
+            display: none;
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            border: 1px solid var(--alarm);
+            background: rgba(214, 69, 69, 0.12);
+            color: #ffd4d4;
+            font-size: 14px;
+        }
+
+        .aviso.visible {
+            display: block;
+        }
+
+        .rejilla {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .tarjeta {
+            background: var(--panel);
+            border: 1px solid var(--panel-edge);
+            border-top: 4px solid var(--idle);
+            min-height: 280px;
+            padding: 22px 22px 18px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tarjeta.ok {
+            border-top-color: var(--ok);
+            box-shadow: inset 0 0 40px var(--ok-glow);
+        }
+
+        .tarjeta.alarma {
+            border-top-color: var(--alarm);
+            box-shadow: inset 0 0 40px var(--alarm-glow);
+        }
+
+        .zona {
+            font-size: 13px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .lectura {
+            margin-top: 18px;
+            font-family: Consolas, "Cascadia Mono", monospace;
+            font-size: 84px;
+            line-height: 0.95;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .unidad {
+            margin-top: 8px;
+            font-size: 18px;
+            color: var(--muted);
+        }
+
+        .pie-tarjeta {
+            margin-top: auto;
+            padding-top: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .estado {
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .tarjeta.ok .estado { color: #7ddea8; }
+        .tarjeta.alarma .estado { color: #ff9b9b; }
+        .tarjeta.espera .estado { color: var(--muted); }
+
+        .rango {
+            color: var(--muted);
+            text-align: right;
+        }
+
+        footer {
+            margin-top: 18px;
+            color: var(--muted);
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        @media (max-width: 900px) {
+            .rejilla { grid-template-columns: 1fr; }
+            .lectura { font-size: 64px; }
+            header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <main class="marco">
+        <header>
+            <div>
+                <p class="marca">LamiPredict · Saint-Gobain</p>
+                <h1>Panel de línea</h1>
+            </div>
+            <div class="enlace">
+                <span id="punto" class="punto"></span>
+                <span id="enlace-texto">Conectando…</span>
+            </div>
+        </header>
+
+        <p id="aviso" class="aviso" role="alert"></p>
+
+        <section class="rejilla" aria-live="polite">
+            <article class="tarjeta espera" id="card-horno">
+                <p class="zona">Temperatura del horno</p>
+                <p class="lectura" id="val-horno">—</p>
+                <p class="unidad">°C</p>
+                <div class="pie-tarjeta">
+                    <span class="estado" id="est-horno">Esperando</span>
+                    <span class="rango">Óptimo 215 – 225 °C</span>
+                </div>
+            </article>
+
+            <article class="tarjeta espera" id="card-salida">
+                <p class="zona">Temperatura salida horno</p>
+                <p class="lectura" id="val-salida">—</p>
+                <p class="unidad">°C</p>
+                <div class="pie-tarjeta">
+                    <span class="estado" id="est-salida">Esperando</span>
+                    <span class="rango">Óptimo 50 – 60 °C</span>
+                </div>
+            </article>
+
+            <article class="tarjeta espera" id="card-sala">
+                <p class="zona">Temperatura sala blanca</p>
+                <p class="lectura" id="val-sala">—</p>
+                <p class="unidad">°C</p>
+                <div class="pie-tarjeta">
+                    <span class="estado" id="est-sala">Esperando</span>
+                    <span class="rango">Óptimo 23 – 25 °C</span>
+                </div>
+            </article>
+        </section>
+
+        <footer>
+            <span id="marca-tiempo">Sin lectura</span>
+            <span id="marca-pieza"></span>
+        </footer>
+    </main>
+
+    <script>
+        const API = "http://localhost:3000/api/telemetria/ultimas";
+        const INTERVALO_MS = 1000;
+
+        const SENSORES = [
+            { id: "horno", campo: "temp_horno", min: 215, max: 225 },
+            { id: "salida", campo: "temp_salida_horno", min: 50, max: 60 },
+            { id: "sala", campo: "temp_entrada_sala_blanca", min: 23, max: 25 }
+        ];
+
+        let consultaEnCurso = false;
+
+        function enRango(valor, min, max) {
+            return valor >= min && valor <= max;
+        }
+
+        function pintarSensor(sensor, valor) {
+            const tarjeta = document.getElementById("card-" + sensor.id);
+            const lectura = document.getElementById("val-" + sensor.id);
+            const estado = document.getElementById("est-" + sensor.id);
+            const optimo = enRango(valor, sensor.min, sensor.max);
+
+            lectura.textContent = valor.toFixed(1);
+            tarjeta.classList.remove("ok", "alarma", "espera");
+            tarjeta.classList.add(optimo ? "ok" : "alarma");
+            estado.textContent = optimo ? "En rango" : "Fuera de rango";
+        }
+
+        function marcarEnlace(modo, texto) {
+            const punto = document.getElementById("punto");
+            punto.className = "punto " + (modo === "ok" ? "ok" : modo === "alarma" ? "alarma" : "");
+            document.getElementById("enlace-texto").textContent = texto;
+        }
+
+        function mostrarAviso(mensaje) {
+            const aviso = document.getElementById("aviso");
+            if (!mensaje) {
+                aviso.textContent = "";
+                aviso.classList.remove("visible");
+                return;
+            }
+            aviso.textContent = mensaje;
+            aviso.classList.add("visible");
+        }
+
+        async function leerUltima() {
+            if (consultaEnCurso) return;
+            consultaEnCurso = true;
+
+            try {
+                const respuesta = await fetch(API);
+                if (!respuesta.ok) {
+                    throw new Error("HTTP " + respuesta.status);
+                }
+
+                const lecturas = await respuesta.json();
+                if (!Array.isArray(lecturas) || lecturas.length === 0) {
+                    mostrarAviso("La línea no ha registrado telemetría todavía.");
+                    marcarEnlace("alarma", "Sin datos");
+                    return;
+                }
+
+                const reciente = lecturas[0];
+                SENSORES.forEach(function (sensor) {
+                    const valor = Number(reciente[sensor.campo]);
+                    if (!Number.isFinite(valor)) {
+                        throw new Error("Lectura inválida en " + sensor.campo);
+                    }
+                    pintarSensor(sensor, valor);
+                });
+
+                const momento = reciente.timestamp
+                    ? new Date(reciente.timestamp).toLocaleString("es-ES")
+                    : "sin marca de tiempo";
+                document.getElementById("marca-tiempo").textContent = "Última lectura: " + momento;
+                document.getElementById("marca-pieza").textContent = reciente.id_pieza
+                    ? "Pieza " + reciente.id_pieza
+                    : "Línea en vacío";
+
+                mostrarAviso("");
+                marcarEnlace("ok", "En línea · 1 s");
+            } catch (error) {
+                mostrarAviso("No se pudo leer la telemetría: " + error.message);
+                marcarEnlace("alarma", "Sin señal");
+            } finally {
+                consultaEnCurso = false;
+            }
+        }
+
+        leerUltima();
+        setInterval(leerUltima, INTERVALO_MS);
+    </script>
+</body>
+</html>
